@@ -1,6 +1,7 @@
+// lib/pages/plant_details_panel.dart
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // <- Firestore
-import 'package:lawndoctor/pages/plants_page.dart'; // for Plant model
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:lawndoctor/pages/plants_page.dart'; // Plant model
 import '../theme.dart';
 import '../widgets.dart';
 
@@ -26,7 +27,7 @@ class _PlantDetailsPageState extends State<PlantDetailsPage> {
     showDialog(
       context: context,
       barrierDismissible: true,
-      builder: (_) => _BuyDialog(plant: widget.plant), // pass full plant
+      builder: (_) => _BuyDialog(plant: widget.plant),
     );
   }
 
@@ -36,8 +37,15 @@ class _PlantDetailsPageState extends State<PlantDetailsPage> {
     final specs = _specsFor(p.name);
     final isMobile = MediaQuery.of(context).size.width < 700;
 
+    // Ensure we always have something to show
+    final List<String> imgs =
+        (p.images.isNotEmpty
+                ? p.images
+                : [p.coverImage].where((e) => e.trim().isNotEmpty).toList())
+            .take(12) // guard against super long arrays
+            .toList();
+
     return Scaffold(
-      // Clean page, no AppBar
       body: SafeArea(
         child: ListView(
           children: [
@@ -45,7 +53,7 @@ class _PlantDetailsPageState extends State<PlantDetailsPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Top actions row (no app bar)
+                  // Top row
                   Row(
                     children: [
                       SecondaryButton(
@@ -58,10 +66,9 @@ class _PlantDetailsPageState extends State<PlantDetailsPage> {
                   ),
                   const SizedBox(height: 12),
 
-                  // ==== SQUARE (CUBE) GALLERY + THUMBNAILS ====
+                  // ==== SQUARE GALLERY + THUMBS (network/asset safe) ====
                   LayoutBuilder(
                     builder: (context, c) {
-                      // Responsive square size
                       final double side =
                           (c.maxWidth * (isMobile ? 0.86 : 0.55)).clamp(
                             220.0,
@@ -70,7 +77,7 @@ class _PlantDetailsPageState extends State<PlantDetailsPage> {
 
                       return Column(
                         children: [
-                          // Main square image
+                          // Main square
                           Align(
                             alignment: Alignment.center,
                             child: SizedBox(
@@ -79,103 +86,104 @@ class _PlantDetailsPageState extends State<PlantDetailsPage> {
                                 aspectRatio: 1,
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(16),
-                                  child: PageView.builder(
-                                    controller: _controller,
-                                    onPageChanged: (i) =>
-                                        setState(() => _index = i),
-                                    itemCount: p.images.length,
-                                    itemBuilder: (_, i) => Image.asset(
-                                      p.images[i],
-                                      fit: BoxFit.cover,
-                                      filterQuality: FilterQuality.high,
-                                      errorBuilder: (_, __, ___) => Container(
-                                        color: const Color(0xFFEFEFEF),
-                                        child: const Center(
-                                          child: Icon(Icons.broken_image),
+                                  child: imgs.isEmpty
+                                      ? Container(
+                                          color: const Color(0xFFEFEFEF),
+                                          child: const Center(
+                                            child: Icon(Icons.broken_image),
+                                          ),
+                                        )
+                                      : PageView.builder(
+                                          controller: _controller,
+                                          onPageChanged: (i) =>
+                                              setState(() => _index = i),
+                                          itemCount: imgs.length,
+                                          itemBuilder: (_, i) => _SmartImage(
+                                            src: imgs[i],
+                                            fit: BoxFit.cover,
+                                          ),
                                         ),
-                                      ),
-                                    ),
-                                  ),
                                 ),
                               ),
                             ),
                           ),
                           const SizedBox(height: 10),
 
-                          // Thumbnails row (smaller on phones)
-                          Align(
-                            alignment: Alignment.center,
-                            child: SizedBox(
-                              height: isMobile ? 52 : 56,
-                              child: ListView.separated(
-                                shrinkWrap: true,
-                                scrollDirection: Axis.horizontal,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 2,
-                                ),
-                                itemCount: p.images.length,
-                                separatorBuilder: (_, __) =>
-                                    const SizedBox(width: 8),
-                                itemBuilder: (_, i) {
-                                  final active = i == _index;
-                                  return GestureDetector(
-                                    onTap: () {
-                                      setState(() => _index = i);
-                                      _controller.animateToPage(
-                                        i,
+                          // Thumbnails
+                          if (imgs.length > 1)
+                            Align(
+                              alignment: Alignment.center,
+                              child: SizedBox(
+                                height: isMobile ? 52 : 56,
+                                child: ListView.separated(
+                                  shrinkWrap: true,
+                                  scrollDirection: Axis.horizontal,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 2,
+                                  ),
+                                  itemCount: imgs.length,
+                                  separatorBuilder: (_, __) =>
+                                      const SizedBox(width: 8),
+                                  itemBuilder: (_, i) {
+                                    final active = i == _index;
+                                    return GestureDetector(
+                                      onTap: () {
+                                        setState(() => _index = i);
+                                        _controller.animateToPage(
+                                          i,
+                                          duration: const Duration(
+                                            milliseconds: 280,
+                                          ),
+                                          curve: Curves.easeInOut,
+                                        );
+                                      },
+                                      child: AnimatedContainer(
                                         duration: const Duration(
-                                          milliseconds: 280,
+                                          milliseconds: 160,
                                         ),
-                                        curve: Curves.easeInOut,
-                                      );
-                                    },
-                                    child: AnimatedContainer(
-                                      duration: const Duration(
-                                        milliseconds: 160,
-                                      ),
-                                      width: isMobile ? 52 : 56,
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                          color: active
-                                              ? kGreen
-                                              : const Color(0x22000000),
-                                          width: active ? 2 : 1,
+                                        width: isMobile ? 52 : 56,
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          border: Border.all(
+                                            color: active
+                                                ? kGreen
+                                                : const Color(0x22000000),
+                                            width: active ? 2 : 1,
+                                          ),
+                                          boxShadow: active
+                                              ? const [
+                                                  BoxShadow(
+                                                    color: Color(0x14000000),
+                                                    blurRadius: 8,
+                                                    offset: Offset(0, 4),
+                                                  ),
+                                                ]
+                                              : null,
                                         ),
-                                        boxShadow: active
-                                            ? const [
-                                                BoxShadow(
-                                                  color: Color(0x14000000),
-                                                  blurRadius: 8,
-                                                  offset: Offset(0, 4),
-                                                ),
-                                              ]
-                                            : null,
-                                      ),
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(10),
-                                        child: Image.asset(
-                                          p.images[i],
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (_, __, ___) =>
-                                              Container(
-                                                color: const Color(0xFFEFEFEF),
-                                              ),
+                                        child: ClipRRect(
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                          child: _SmartImage(
+                                            src: imgs[i],
+                                            fit: BoxFit.cover,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  );
-                                },
+                                    );
+                                  },
+                                ),
                               ),
                             ),
-                          ),
                         ],
                       );
                     },
                   ),
 
-                  // ==== END GALLERY ====
                   const SizedBox(height: 18),
+                  // Name + description
                   Text(
                     p.name,
                     style: TextStyle(
@@ -198,7 +206,7 @@ class _PlantDetailsPageState extends State<PlantDetailsPage> {
 
                   const SizedBox(height: 18),
 
-                  // Quick specs (pills)
+                  // Quick specs
                   Wrap(
                     spacing: 10,
                     runSpacing: 10,
@@ -300,7 +308,7 @@ class _PlantDetailsPageState extends State<PlantDetailsPage> {
 
                   const SizedBox(height: 18),
 
-                  // CTAs (wrap on phones)
+                  // CTAs
                   Wrap(
                     spacing: 12,
                     runSpacing: 12,
@@ -321,7 +329,6 @@ class _PlantDetailsPageState extends State<PlantDetailsPage> {
     );
   }
 
-  // Heuristic quick-specs based on plant name keywords (keeps UI informative)
   _Specs _specsFor(String name) {
     final n = name.toLowerCase();
     if (n.contains('palm') || n.contains('hibiscus') || n.contains('bougain')) {
@@ -585,7 +592,7 @@ class _BuyDialogState extends State<_BuyDialog> {
       await FirebaseFirestore.instance.collection('orders').add({
         'plantId': widget.plant.id,
         'plantName': widget.plant.name,
-        'price': widget.plant.price, // keep it formatted string
+        'price': widget.plant.price,
         'quantity': _qty,
         'customerName': _fullName.text.trim(),
         'address': _address.text.trim(),
@@ -595,8 +602,6 @@ class _BuyDialogState extends State<_BuyDialog> {
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      // Show success UI
-      // Close the form dialog first
       if (mounted) Navigator.of(context).pop();
       if (mounted) {
         showDialog(
@@ -625,9 +630,7 @@ class _BuyDialogState extends State<_BuyDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      insetPadding: const EdgeInsets.symmetric(
-        horizontal: 16,
-      ), // safer on mobile
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 560),
@@ -652,8 +655,6 @@ class _BuyDialogState extends State<_BuyDialog> {
                   decoration: const InputDecoration(labelText: 'Plant / Tree'),
                 ),
                 const SizedBox(height: 12),
-
-                // Qty
                 Row(
                   children: [
                     const Text(
@@ -667,7 +668,6 @@ class _BuyDialogState extends State<_BuyDialog> {
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 12),
                 Form(
                   key: _formKey,
@@ -871,6 +871,81 @@ class _SuccessDialog extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/* ============================ SMART IMAGE ============================ */
+
+/// Network + Cloudinary optimizer (adds f_auto,q_auto,dpr_auto).
+/// Falls back to asset images if `src` isn't a URL.
+class _SmartImage extends StatelessWidget {
+  final String src;
+  final double? height;
+  final double? width;
+  final BoxFit? fit;
+
+  const _SmartImage({required this.src, this.height, this.width, this.fit});
+
+  bool get _isNetwork =>
+      src.startsWith('http://') || src.startsWith('https://');
+
+  bool get _isCloudinary =>
+      src.contains('res.cloudinary.com') && src.contains('/image/upload/');
+
+  String _withCloudinaryOptimizations(String url) {
+    if (url.contains('/image/upload/') && url.contains('f_auto')) return url;
+    const marker = '/image/upload/';
+    final i = url.indexOf(marker);
+    if (i == -1) return url;
+    final before = url.substring(0, i + marker.length);
+    final after = url.substring(i + marker.length);
+    return '$before'
+        'f_auto,q_auto,dpr_auto/'
+        '$after';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (src.isEmpty) {
+      return Container(
+        height: height,
+        width: width,
+        color: const Color(0xFFEFEFEF),
+        child: const Center(child: Icon(Icons.broken_image)),
+      );
+    }
+
+    if (_isNetwork) {
+      final url = _isCloudinary ? _withCloudinaryOptimizations(src) : src;
+      return Image.network(
+        url,
+        height: height,
+        width: width,
+        fit: fit,
+        filterQuality: FilterQuality.high,
+        errorBuilder: (_, __, ___) => Container(
+          height: height,
+          width: width,
+          color: const Color(0xFFEFEFEF),
+          child: const Center(child: Icon(Icons.broken_image)),
+        ),
+      );
+    }
+
+    // Fallback: asset
+    return Image.asset(
+      src,
+      height: height,
+      width: width,
+      fit: fit,
+      filterQuality: FilterQuality.high,
+      errorBuilder: (_, __, ___) => Container(
+        height: height,
+        width: width,
+        color: const Color(0xFFEFEFEF),
+        child: const Center(child: Icon(Icons.broken_image)),
       ),
     );
   }

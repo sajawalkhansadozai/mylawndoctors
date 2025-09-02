@@ -20,7 +20,7 @@ class _AdminPanelPageState extends State<AdminPanelPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this); // Changed to 4 tabs
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
@@ -68,6 +68,7 @@ class _AdminPanelPageState extends State<AdminPanelPage>
                     _MessagesTab(),
                     _BookingsTab(),
                     _OrdersTab(),
+                    _PlantsTab(), // Added plants tab
                   ],
                 ),
               ),
@@ -158,7 +159,7 @@ class _AdminPanelPageState extends State<AdminPanelPage>
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          // Force single column on very narrow screens
+          // Force stacked layout on very narrow screens
           if (constraints.maxWidth < 400) {
             return Column(
               children: [
@@ -181,6 +182,64 @@ class _AdminPanelPageState extends State<AdminPanelPage>
                   Icons.shopping_bag_rounded,
                   const Color(0xFFf59E0B),
                   true,
+                ),
+                const SizedBox(height: 8),
+                _buildStatCard(
+                  'Plants',
+                  Icons.local_florist_rounded,
+                  const Color(0xFF8B5CF6),
+                  true,
+                ),
+              ],
+            );
+          }
+
+          // 2x2 grid for mobile, row for wider screens
+          if (isMobile) {
+            return Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildStatCard(
+                        'Messages',
+                        Icons.message_rounded,
+                        const Color(0xFF10B981),
+                        isMobile,
+                      ),
+                    ),
+                    SizedBox(width: isMobile ? 8 : 12),
+                    Expanded(
+                      child: _buildStatCard(
+                        'Bookings',
+                        Icons.calendar_today_rounded,
+                        const Color(0xFF3B82F6),
+                        isMobile,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildStatCard(
+                        'Orders',
+                        Icons.shopping_bag_rounded,
+                        const Color(0xFFf59E0B),
+                        isMobile,
+                      ),
+                    ),
+                    SizedBox(width: isMobile ? 8 : 12),
+                    Expanded(
+                      child: _buildStatCard(
+                        'Plants',
+                        Icons.local_florist_rounded,
+                        const Color(0xFF8B5CF6),
+                        isMobile,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             );
@@ -212,6 +271,15 @@ class _AdminPanelPageState extends State<AdminPanelPage>
                   'Orders',
                   Icons.shopping_bag_rounded,
                   const Color(0xFFf59E0B),
+                  isMobile,
+                ),
+              ),
+              SizedBox(width: isMobile ? 8 : 12),
+              Expanded(
+                child: _buildStatCard(
+                  'Plants',
+                  Icons.local_florist_rounded,
+                  const Color(0xFF8B5CF6),
                   isMobile,
                 ),
               ),
@@ -297,6 +365,8 @@ class _AdminPanelPageState extends State<AdminPanelPage>
         return 'bookings';
       case 'Orders':
         return 'orders';
+      case 'Plants':
+        return 'plants';
       default:
         return 'contactMessages';
     }
@@ -341,11 +411,11 @@ class _AdminPanelPageState extends State<AdminPanelPage>
         unselectedLabelColor: const Color(0xFF64748B),
         labelStyle: TextStyle(
           fontWeight: FontWeight.w700,
-          fontSize: isMobile ? 12 : 14,
+          fontSize: isMobile ? 11 : 13,
         ),
         unselectedLabelStyle: TextStyle(
           fontWeight: FontWeight.w600,
-          fontSize: isMobile ? 12 : 14,
+          fontSize: isMobile ? 11 : 13,
         ),
         tabs: [
           _buildTab(
@@ -366,6 +436,12 @@ class _AdminPanelPageState extends State<AdminPanelPage>
             2,
             isMobile,
           ),
+          _buildTab(
+            Icons.local_florist_rounded,
+            isMobile ? 'Plant' : 'Plants',
+            3,
+            isMobile,
+          ),
         ],
       ),
     );
@@ -381,10 +457,10 @@ class _AdminPanelPageState extends State<AdminPanelPage>
         children: [
           Icon(
             icon,
-            size: isMobile ? 16 : 20,
+            size: isMobile ? 14 : 18,
             color: isSelected ? Colors.white : const Color(0xFF64748B),
           ),
-          SizedBox(width: isMobile ? 4 : 8),
+          SizedBox(width: isMobile ? 3 : 6),
           Flexible(
             child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
           ),
@@ -497,6 +573,7 @@ class _AdminPanelPageState extends State<AdminPanelPage>
                   const Color(0xFFf59E0B),
                   isMobile,
                 ),
+
                 Divider(height: isMobile ? 24 : 32),
                 _buildDebugButton(
                   'Clear All Data',
@@ -580,7 +657,7 @@ class _AdminPanelPageState extends State<AdminPanelPage>
     );
   }
 
-  // Debug methods remain the same but with better error handling
+  // Debug methods with added plant functionality
   Future<void> _addTestMessage() async {
     try {
       await FirebaseFirestore.instance.collection('contactMessages').add({
@@ -644,7 +721,7 @@ class _AdminPanelPageState extends State<AdminPanelPage>
 
   Future<void> _clearAllData() async {
     try {
-      final collections = ['contactMessages', 'bookings', 'orders'];
+      final collections = ['contactMessages', 'bookings', 'orders', 'plants'];
 
       for (final collection in collections) {
         final snapshot = await FirebaseFirestore.instance
@@ -662,7 +739,7 @@ class _AdminPanelPageState extends State<AdminPanelPage>
 
   Future<void> _checkCollections() async {
     try {
-      final collections = ['contactMessages', 'bookings', 'orders'];
+      final collections = ['contactMessages', 'bookings', 'orders', 'plants'];
 
       for (final collection in collections) {
         final snapshot = await FirebaseFirestore.instance
@@ -805,6 +882,662 @@ class _OrdersTab extends StatelessWidget {
     );
   }
 }
+
+class _PlantsTab extends StatelessWidget {
+  const _PlantsTab();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _CollectionStreamList(
+        collection: 'plants',
+        icon: Icons.local_florist_rounded,
+        emptyTitle: 'No Plants in Catalog',
+        emptyDescription:
+            'Add plants to your catalog to display them to customers.',
+        color: const Color(0xFF8B5CF6),
+        builder: (doc) {
+          final data = doc.data() as Map<String, dynamic>? ?? {};
+          return _PlantCard(
+            name: data['name'] ?? 'Unknown Plant',
+            price: data['price'] ?? 'Price not set',
+            shortDesc: data['shortDesc'] ?? 'No description',
+            longDesc: data['longDesc'] ?? 'No detailed description',
+            coverImage: data['coverImage'] ?? '',
+            images:
+                (data['images'] as List?)
+                    ?.map((e) => e?.toString() ?? '')
+                    .where((e) => e.isNotEmpty)
+                    .toList() ??
+                [],
+            createdAt: data['createdAt'],
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showAddPlantDialog(context),
+        backgroundColor: const Color(0xFF8B5CF6),
+        icon: const Icon(Icons.add_rounded, color: Colors.white),
+        label: const Text(
+          'Add Plant',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+        ),
+      ),
+    );
+  }
+
+  void _showAddPlantDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const _AddPlantDialog(),
+    );
+  }
+}
+
+/* ============================ ADD PLANT DIALOG ============================ */
+
+class _AddPlantDialog extends StatefulWidget {
+  const _AddPlantDialog();
+
+  @override
+  State<_AddPlantDialog> createState() => _AddPlantDialogState();
+}
+
+class _AddPlantDialogState extends State<_AddPlantDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _priceController = TextEditingController();
+  final _shortDescController = TextEditingController();
+  final _longDescController = TextEditingController();
+  final _coverImageController = TextEditingController();
+  final _imageUrlController = TextEditingController();
+
+  final List<String> _imageUrls = [];
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _priceController.dispose();
+    _shortDescController.dispose();
+    _longDescController.dispose();
+    _coverImageController.dispose();
+    _imageUrlController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
+    return Dialog(
+      insetPadding: EdgeInsets.all(isMobile ? 16 : 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Container(
+        width: isMobile ? double.infinity : 600,
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.9,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(isMobile ? 20 : 24),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    const Color(0xFF8B5CF6).withOpacity(0.1),
+                    const Color(0xFF8B5CF6).withOpacity(0.05),
+                  ],
+                ),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.local_florist_rounded,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Add New Plant',
+                          style: TextStyle(
+                            fontSize: isMobile ? 18 : 20,
+                            fontWeight: FontWeight.w800,
+                            color: kForest,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Add plant to your catalog',
+                          style: TextStyle(
+                            color: const Color(0xFF64748B),
+                            fontSize: isMobile ? 13 : 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: _saving ? null : () => Navigator.pop(context),
+                    icon: const Icon(Icons.close_rounded),
+                    color: const Color(0xFF64748B),
+                  ),
+                ],
+              ),
+            ),
+
+            // Form
+            Flexible(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(isMobile ? 20 : 24),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Plant Name
+                      TextFormField(
+                        controller: _nameController,
+                        decoration: InputDecoration(
+                          labelText: 'Plant Name *',
+                          hintText: 'e.g., Premium Rose Bush',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          prefixIcon: const Icon(Icons.local_florist_rounded),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Plant name is required';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Price
+                      TextFormField(
+                        controller: _priceController,
+                        decoration: InputDecoration(
+                          labelText: 'Price *',
+                          hintText: 'e.g., PKR 1,500',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          prefixIcon: const Icon(Icons.attach_money_rounded),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Price is required';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Short Description
+                      TextFormField(
+                        controller: _shortDescController,
+                        decoration: InputDecoration(
+                          labelText: 'Short Description *',
+                          hintText: 'Brief description for plant cards',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          prefixIcon: const Icon(Icons.short_text_rounded),
+                        ),
+                        maxLines: 2,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Short description is required';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Long Description
+                      TextFormField(
+                        controller: _longDescController,
+                        decoration: InputDecoration(
+                          labelText: 'Detailed Description *',
+                          hintText:
+                              'Detailed description for plant detail page',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          prefixIcon: const Icon(Icons.description_rounded),
+                        ),
+                        maxLines: 4,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Detailed description is required';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Cover Image URL
+                      TextFormField(
+                        controller: _coverImageController,
+                        decoration: InputDecoration(
+                          labelText: 'Cover Image URL',
+                          hintText: 'https://example.com/image.jpg',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          prefixIcon: const Icon(Icons.image_rounded),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Additional Images
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _imageUrlController,
+                              decoration: InputDecoration(
+                                labelText: 'Additional Image URL',
+                                hintText: 'https://example.com/image2.jpg',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                prefixIcon: const Icon(
+                                  Icons.photo_library_rounded,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          ElevatedButton(
+                            onPressed: () {
+                              final url = _imageUrlController.text.trim();
+                              if (url.isNotEmpty && !_imageUrls.contains(url)) {
+                                setState(() {
+                                  _imageUrls.add(url);
+                                  _imageUrlController.clear();
+                                });
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF8B5CF6),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              padding: const EdgeInsets.all(16),
+                            ),
+                            child: const Icon(Icons.add_rounded),
+                          ),
+                        ],
+                      ),
+
+                      // Show added image URLs
+                      if (_imageUrls.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: _imageUrls.map((url) {
+                            return Chip(
+                              label: Text(
+                                url.length > 30
+                                    ? '${url.substring(0, 30)}...'
+                                    : url,
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                              deleteIcon: const Icon(Icons.close, size: 16),
+                              onDeleted: () {
+                                setState(() {
+                                  _imageUrls.remove(url);
+                                });
+                              },
+                              backgroundColor: const Color(
+                                0xFF8B5CF6,
+                              ).withOpacity(0.1),
+                              deleteIconColor: const Color(0xFF8B5CF6),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+
+                      const SizedBox(height: 24),
+
+                      // Buttons
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: _saving
+                                  ? null
+                                  : () => Navigator.pop(context),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text('Cancel'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: _saving ? null : _savePlant,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF8B5CF6),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: _saving
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation(
+                                          Colors.white,
+                                        ),
+                                      ),
+                                    )
+                                  : const Text(
+                                      'Add Plant',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _savePlant() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _saving = true);
+
+    try {
+      await FirebaseFirestore.instance.collection('plants').add({
+        'name': _nameController.text.trim(),
+        'price': _priceController.text.trim(),
+        'shortDesc': _shortDescController.text.trim(),
+        'longDesc': _longDescController.text.trim(),
+        'coverImage': _coverImageController.text.trim(),
+        'images': _imageUrls,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    '${_nameController.text} added successfully!',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Error adding plant: $e',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFFEF4444),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+}
+
+/* ============================ PLANT CARD ============================ */
+
+class _PlantCard extends StatelessWidget {
+  final String name, price, shortDesc, longDesc, coverImage;
+  final List<String> images;
+  final dynamic createdAt;
+
+  const _PlantCard({
+    required this.name,
+    required this.price,
+    required this.shortDesc,
+    required this.longDesc,
+    required this.coverImage,
+    required this.images,
+    required this.createdAt,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(isMobile ? 16 : 20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: isMobile ? 12 : 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with image and basic info
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(isMobile ? 16 : 24),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  const Color(0xFF8B5CF6).withOpacity(0.05),
+                  const Color(0xFF8B5CF6).withOpacity(0.02),
+                ],
+              ),
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(isMobile ? 16 : 20),
+              ),
+            ),
+            child: Row(
+              children: [
+                // Plant image
+                Container(
+                  width: isMobile ? 60 : 80,
+                  height: isMobile ? 60 : 80,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(isMobile ? 12 : 16),
+                    border: Border.all(
+                      color: const Color(0xFF8B5CF6).withOpacity(0.2),
+                    ),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(isMobile ? 11 : 15),
+                    child: coverImage.isNotEmpty
+                        ? Image.network(
+                            coverImage,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              color: const Color(0xFFEFEFEF),
+                              child: Icon(
+                                Icons.local_florist_rounded,
+                                color: const Color(0xFF8B5CF6).withOpacity(0.5),
+                                size: isMobile ? 24 : 32,
+                              ),
+                            ),
+                          )
+                        : Container(
+                            color: const Color(0xFFEFEFEF),
+                            child: Icon(
+                              Icons.local_florist_rounded,
+                              color: const Color(0xFF8B5CF6).withOpacity(0.5),
+                              size: isMobile ? 24 : 32,
+                            ),
+                          ),
+                  ),
+                ),
+                SizedBox(width: isMobile ? 12 : 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        style: TextStyle(
+                          fontSize: isMobile ? 16 : 18,
+                          fontWeight: FontWeight.w800,
+                          color: kForest,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      SizedBox(height: isMobile ? 4 : 6),
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isMobile ? 8 : 12,
+                          vertical: isMobile ? 4 : 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF8B5CF6).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(
+                            isMobile ? 16 : 20,
+                          ),
+                          border: Border.all(
+                            color: const Color(0xFF8B5CF6).withOpacity(0.2),
+                          ),
+                        ),
+                        child: Text(
+                          price,
+                          style: TextStyle(
+                            color: const Color(0xFF8B5CF6),
+                            fontWeight: FontWeight.w800,
+                            fontSize: isMobile ? 12 : 13,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                _buildStatusChip(createdAt, isMobile),
+              ],
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.all(isMobile ? 16 : 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildInfoRow(
+                  Icons.description_rounded,
+                  'Short Description',
+                  shortDesc,
+                  isMobile,
+                  isMultiline: true,
+                ),
+                SizedBox(height: isMobile ? 12 : 16),
+                _buildInfoRow(
+                  Icons.info_rounded,
+                  'Detailed Description',
+                  longDesc.length > 100
+                      ? '${longDesc.substring(0, 100)}...'
+                      : longDesc,
+                  isMobile,
+                  isMultiline: true,
+                ),
+                if (images.isNotEmpty) ...[
+                  SizedBox(height: isMobile ? 12 : 16),
+                  _buildInfoRow(
+                    Icons.photo_library_rounded,
+                    'Images',
+                    '${images.length} image${images.length == 1 ? '' : 's'} uploaded',
+                    isMobile,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/* ============================ REMAINING CLASSES ============================ */
 
 /* ============================= CORE LIST ============================= */
 
