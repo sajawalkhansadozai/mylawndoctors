@@ -20,7 +20,7 @@ class _AdminPanelPageState extends State<AdminPanelPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this); // Changed to 4 tabs
+    _tabController = TabController(length: 4, vsync: this); // 4 tabs
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
@@ -68,7 +68,7 @@ class _AdminPanelPageState extends State<AdminPanelPage>
                     _MessagesTab(),
                     _BookingsTab(),
                     _OrdersTab(),
-                    _PlantsTab(), // Added plants tab
+                    _PlantsTab(), // Plants tab
                   ],
                 ),
               ),
@@ -159,7 +159,6 @@ class _AdminPanelPageState extends State<AdminPanelPage>
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          // Force stacked layout on very narrow screens
           if (constraints.maxWidth < 400) {
             return Column(
               children: [
@@ -194,7 +193,6 @@ class _AdminPanelPageState extends State<AdminPanelPage>
             );
           }
 
-          // 2x2 grid for mobile, row for wider screens
           if (isMobile) {
             return Column(
               children: [
@@ -245,7 +243,6 @@ class _AdminPanelPageState extends State<AdminPanelPage>
             );
           }
 
-          // Row layout for wider screens
           return Row(
             children: [
               Expanded(
@@ -573,7 +570,6 @@ class _AdminPanelPageState extends State<AdminPanelPage>
                   const Color(0xFFf59E0B),
                   isMobile,
                 ),
-
                 Divider(height: isMobile ? 24 : 32),
                 _buildDebugButton(
                   'Clear All Data',
@@ -657,7 +653,7 @@ class _AdminPanelPageState extends State<AdminPanelPage>
     );
   }
 
-  // Debug methods with added plant functionality
+  // Debug methods
   Future<void> _addTestMessage() async {
     try {
       await FirebaseFirestore.instance.collection('contactMessages').add({
@@ -745,9 +741,10 @@ class _AdminPanelPageState extends State<AdminPanelPage>
         final snapshot = await FirebaseFirestore.instance
             .collection(collection)
             .get();
+        // ignore: avoid_print
         print('📊 $collection: ${snapshot.docs.length} documents');
-
         if (snapshot.docs.isNotEmpty) {
+          // ignore: avoid_print
           print('📄 Sample $collection data: ${snapshot.docs.first.data()}');
         }
       }
@@ -809,7 +806,7 @@ class _MessagesTab extends StatelessWidget {
           'Customer messages will appear here when they contact you.',
       color: const Color(0xFF10B981),
       builder: (doc) {
-        final data = doc.data() as Map<String, dynamic>? ?? {};
+        final data = doc.data();
         return _MessageCard(
           name: data['name'] ?? 'Unknown',
           email: data['email'] ?? 'No email',
@@ -836,7 +833,7 @@ class _BookingsTab extends StatelessWidget {
           'Service requests will appear here when customers book services.',
       color: const Color(0xFF3B82F6),
       builder: (doc) {
-        final data = doc.data() as Map<String, dynamic>? ?? {};
+        final data = doc.data();
         return _BookingCard(
           name: data['name'] ?? 'Unknown',
           email: data['email'] ?? 'No email',
@@ -867,7 +864,7 @@ class _OrdersTab extends StatelessWidget {
           'Plant orders will appear here when customers make purchases.',
       color: const Color(0xFFf59E0B),
       builder: (doc) {
-        final data = doc.data() as Map<String, dynamic>? ?? {};
+        final data = doc.data();
         return _OrderCard(
           customerName: data['customerName'] ?? 'Unknown',
           city: data['city'] ?? 'Unknown city',
@@ -897,25 +894,28 @@ class _PlantsTab extends StatelessWidget {
             'Add plants to your catalog to display them to customers.',
         color: const Color(0xFF8B5CF6),
         builder: (doc) {
-          final data = doc.data() as Map<String, dynamic>? ?? {};
+          final data = doc.data();
+          final List<String> images =
+              (data['images'] as List?)
+                  ?.map((e) => e?.toString() ?? '')
+                  .where((e) => e.isNotEmpty)
+                  .toList() ??
+              [];
           return _PlantCard(
+            docId: doc.id,
+            raw: data,
             name: data['name'] ?? 'Unknown Plant',
             price: data['price'] ?? 'Price not set',
             shortDesc: data['shortDesc'] ?? 'No description',
             longDesc: data['longDesc'] ?? 'No detailed description',
             coverImage: data['coverImage'] ?? '',
-            images:
-                (data['images'] as List?)
-                    ?.map((e) => e?.toString() ?? '')
-                    .where((e) => e.isNotEmpty)
-                    .toList() ??
-                [],
+            images: images,
             createdAt: data['createdAt'],
           );
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddPlantDialog(context),
+        onPressed: () => _showPlantEditorDialog(context),
         backgroundColor: const Color(0xFF8B5CF6),
         icon: const Icon(Icons.add_rounded, color: Colors.white),
         label: const Text(
@@ -926,25 +926,34 @@ class _PlantsTab extends StatelessWidget {
     );
   }
 
-  void _showAddPlantDialog(BuildContext context) {
+  void _showPlantEditorDialog(
+    BuildContext context, {
+    String? docId,
+    Map<String, dynamic>? initial,
+  }) {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const _AddPlantDialog(),
+      builder: (context) => _PlantEditorDialog(docId: docId, initial: initial),
     );
   }
 }
 
-/* ============================ ADD PLANT DIALOG ============================ */
+/* ============================ ADD/EDIT PLANT DIALOG ============================ */
 
-class _AddPlantDialog extends StatefulWidget {
-  const _AddPlantDialog();
+class _PlantEditorDialog extends StatefulWidget {
+  final String? docId; // null => Add, not null => Edit
+  final Map<String, dynamic>? initial;
+
+  const _PlantEditorDialog({this.docId, this.initial});
+
+  bool get isEdit => docId != null;
 
   @override
-  State<_AddPlantDialog> createState() => _AddPlantDialogState();
+  State<_PlantEditorDialog> createState() => _PlantEditorDialogState();
 }
 
-class _AddPlantDialogState extends State<_AddPlantDialog> {
+class _PlantEditorDialogState extends State<_PlantEditorDialog> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _priceController = TextEditingController();
@@ -955,6 +964,26 @@ class _AddPlantDialogState extends State<_AddPlantDialog> {
 
   final List<String> _imageUrls = [];
   bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.isEdit && widget.initial != null) {
+      final i = widget.initial!;
+      _nameController.text = (i['name'] ?? '').toString();
+      _priceController.text = (i['price'] ?? '').toString();
+      _shortDescController.text = (i['shortDesc'] ?? '').toString();
+      _longDescController.text = (i['longDesc'] ?? '').toString();
+      _coverImageController.text = (i['coverImage'] ?? '').toString();
+      final imgs =
+          (i['images'] as List?)
+              ?.map((e) => e?.toString() ?? '')
+              .where((e) => e.isNotEmpty)
+              .toList() ??
+          [];
+      _imageUrls.addAll(imgs);
+    }
+  }
 
   @override
   void dispose() {
@@ -1019,7 +1048,7 @@ class _AddPlantDialogState extends State<_AddPlantDialog> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Add New Plant',
+                          widget.isEdit ? 'Edit Plant' : 'Add New Plant',
                           style: TextStyle(
                             fontSize: isMobile ? 18 : 20,
                             fontWeight: FontWeight.w800,
@@ -1028,7 +1057,9 @@ class _AddPlantDialogState extends State<_AddPlantDialog> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Add plant to your catalog',
+                          widget.isEdit
+                              ? 'Update plant details'
+                              : 'Add plant to your catalog',
                           style: TextStyle(
                             color: const Color(0xFF64748B),
                             fontSize: isMobile ? 13 : 14,
@@ -1194,7 +1225,6 @@ class _AddPlantDialogState extends State<_AddPlantDialog> {
                         ],
                       ),
 
-                      // Show added image URLs
                       if (_imageUrls.isNotEmpty) ...[
                         const SizedBox(height: 12),
                         Wrap(
@@ -1269,9 +1299,11 @@ class _AddPlantDialogState extends State<_AddPlantDialog> {
                                         ),
                                       ),
                                     )
-                                  : const Text(
-                                      'Add Plant',
-                                      style: TextStyle(
+                                  : Text(
+                                      widget.isEdit
+                                          ? 'Save Changes'
+                                          : 'Add Plant',
+                                      style: const TextStyle(
                                         fontWeight: FontWeight.w700,
                                       ),
                                     ),
@@ -1296,15 +1328,26 @@ class _AddPlantDialogState extends State<_AddPlantDialog> {
     setState(() => _saving = true);
 
     try {
-      await FirebaseFirestore.instance.collection('plants').add({
+      final payload = {
         'name': _nameController.text.trim(),
         'price': _priceController.text.trim(),
         'shortDesc': _shortDescController.text.trim(),
         'longDesc': _longDescController.text.trim(),
         'coverImage': _coverImageController.text.trim(),
         'images': _imageUrls,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      };
+
+      if (widget.isEdit) {
+        await FirebaseFirestore.instance
+            .collection('plants')
+            .doc(widget.docId)
+            .update({...payload, 'updatedAt': FieldValue.serverTimestamp()});
+      } else {
+        await FirebaseFirestore.instance.collection('plants').add({
+          ...payload,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
 
       if (mounted) {
         Navigator.pop(context);
@@ -1316,7 +1359,9 @@ class _AddPlantDialogState extends State<_AddPlantDialog> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    '${_nameController.text} added successfully!',
+                    widget.isEdit
+                        ? 'Plant updated successfully!'
+                        : '${_nameController.text} added successfully!',
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -1340,7 +1385,7 @@ class _AddPlantDialogState extends State<_AddPlantDialog> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Error adding plant: $e',
+                    'Error saving plant: $e',
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -1360,14 +1405,19 @@ class _AddPlantDialogState extends State<_AddPlantDialog> {
   }
 }
 
-/* ============================ PLANT CARD ============================ */
+/* ============================ PLANT CARD (with Edit/Delete) ============================ */
 
 class _PlantCard extends StatelessWidget {
+  final String docId;
+  final Map<String, dynamic> raw;
+
   final String name, price, shortDesc, longDesc, coverImage;
   final List<String> images;
   final dynamic createdAt;
 
   const _PlantCard({
+    required this.docId,
+    required this.raw,
     required this.name,
     required this.price,
     required this.shortDesc,
@@ -1397,7 +1447,7 @@ class _PlantCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header with image and basic info
+          // Header with image and basic info + actions
           Container(
             width: double.infinity,
             padding: EdgeInsets.all(isMobile ? 16 : 24),
@@ -1493,10 +1543,63 @@ class _PlantCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                _buildStatusChip(createdAt, isMobile),
+
+                // Status + actions
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildStatusChip(createdAt, isMobile),
+                    const SizedBox(width: 8),
+                    PopupMenuButton<String>(
+                      tooltip: 'Actions',
+                      onSelected: (value) {
+                        if (value == 'edit') {
+                          _openEditor(context);
+                        } else if (value == 'delete') {
+                          _confirmDelete(context);
+                        }
+                      },
+                      itemBuilder: (_) => [
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit_rounded, size: 18),
+                              SizedBox(width: 8),
+                              Text('Edit'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuDivider(),
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: const [
+                              Icon(
+                                Icons.delete_forever_rounded,
+                                size: 18,
+                                color: Color(0xFFEF4444),
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Delete',
+                                style: TextStyle(color: Color(0xFFEF4444)),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(isMobile ? 10 : 12),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
+
+          // Body
           Padding(
             padding: EdgeInsets.all(isMobile ? 16 : 24),
             child: Column(
@@ -1535,9 +1638,95 @@ class _PlantCard extends StatelessWidget {
       ),
     );
   }
-}
 
-/* ============================ REMAINING CLASSES ============================ */
+  void _openEditor(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _PlantEditorDialog(docId: docId, initial: raw),
+    );
+  }
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete Plant'),
+        content: Text(
+          'Are you sure you want to delete "$name"? This action cannot be undone.',
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(isMobile ? 12 : 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFEF4444),
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await FirebaseFirestore.instance.collection('plants').doc(docId).delete();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: const [
+              Icon(Icons.delete_rounded, color: Colors.white),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Plant deleted successfully',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFFEF4444),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: const [
+              Icon(Icons.error, color: Colors.white),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Error deleting plant',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFFEF4444),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    }
+  }
+}
 
 /* ============================= CORE LIST ============================= */
 
@@ -1594,7 +1783,7 @@ class _CollectionStreamList extends StatelessWidget {
           }
 
           return ListView.separated(
-            padding: const EdgeInsets.only(bottom: 100), // Account for FAB
+            padding: const EdgeInsets.only(bottom: 100), // space for FAB
             itemCount: docs.length,
             separatorBuilder: (_, __) => const SizedBox(height: 12),
             itemBuilder: (_, i) => TweenAnimationBuilder<double>(
@@ -2477,7 +2666,7 @@ Widget _buildStatusChip(dynamic timestamp, bool isMobile) {
   );
 }
 
-// Helper functions remain the same
+// Helper functions
 String _formatTimestamp(dynamic ts) {
   try {
     if (ts is Timestamp) {
@@ -2551,6 +2740,8 @@ String _formatService(String service) {
 
 String _formatFrequency(String frequency) {
   switch (frequency) {
+    case 'daily':
+      return 'Daily Service';
     case 'weekly':
       return 'Weekly Service';
     case 'bi-weekly':

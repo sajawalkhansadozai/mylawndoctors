@@ -781,19 +781,20 @@ class Footer extends StatelessWidget {
                         ),
                       ]),
                     ),
+                    // UPDATED CONTACT INFO
                     SizedBox(
                       width: 240,
                       child: _col('Contact Information', const [
                         Text(
-                          '📞 Main: (555) 123-LAWN',
+                          '📞 +923335554059',
                           style: TextStyle(color: Colors.white70),
                         ),
                         Text(
-                          '📞 Emergency: (555) 123-9999',
+                          '📞 +923345173764',
                           style: TextStyle(color: Colors.white70),
                         ),
                         Text(
-                          '📧 info@lawndoctor.com',
+                          '📧 bookings@mylawndoctors.com',
                           style: TextStyle(color: Colors.white70),
                         ),
                         Text(

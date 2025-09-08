@@ -1,4 +1,6 @@
 // lib/pages/plant_details_panel.dart
+// ignore_for_file: unused_element_parameter
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:lawndoctor/pages/plants_page.dart'; // Plant model
@@ -872,10 +874,9 @@ class _SuccessDialog extends StatelessWidget {
           ],
         ),
       ),
-    );
+    );  
   }
 }
-
 /* ============================ SMART IMAGE ============================ */
 
 /// Network + Cloudinary optimizer (adds f_auto,q_auto,dpr_auto).
