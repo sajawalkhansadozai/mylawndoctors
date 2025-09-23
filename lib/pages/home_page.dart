@@ -36,7 +36,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void _scrollToServices() => _scrollTo(_servicesKey);
   void _scrollToPlans() => _scrollTo(_plansKey);
   void _scrollToBooking() => _scrollTo(_bookingKey);
 
